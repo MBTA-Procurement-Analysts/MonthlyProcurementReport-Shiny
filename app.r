@@ -17,8 +17,8 @@ library(magrittr)
 setwd("C:/Users/nguo/Documents/github/MonthlyProcurementReport-Shiny")
 
 # Plotly APIs
-Sys.setenv("plotly_username"="Zenmai0822")
-Sys.setenv("plotly_api_key"="1qC2QkZBYFrJzOG9RW9i")
+Sys.setenv("plotly_username" = "Zenmai0822")
+Sys.setenv("plotly_api_key" = "1qC2QkZBYFrJzOG9RW9i")
 
 # Dollar Formatting for Tables
 usd <- dollar_format(largest_with_cents = 1e+15, prefix = "$")
@@ -95,10 +95,16 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 
 (po_spend_bunit <- raw_po %>% 
     group_by(Unit) %>% 
-    summarise(Sum = sum(`Sum Amount`)) %>%
+    summarise(Sum = sum(`Sum Amount`), Count = n()) %>%
     mutate(Perc = Sum / po_sum[[1]]) %>% 
-    arrange(desc(Perc)))
+    arrange(Perc))
 
+# Putting Unit sorted by percent into factors, so that plotly can plot in correct order.
+(bunit_spend_fct <- po_spend_bunit %>% 
+    pull(Unit))
+
+(po_spend_bunitfct <- po_spend_bunit %>% 
+    mutate_at("Unit", ~parse_factor(., levels = bunit_spend_fct)))
 
 # Plotting ----------------------------------------------------------------
 
@@ -138,6 +144,18 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 
 (plot_monthly_po_count <- plot_ly(monthly_po_spend) %>% add_lines(x = ~Month, y = ~Monthly_Count))
 
+(plot_pie_spend_bunit <- po_spend_bunitfct %>% 
+    plot_ly(x = 0, y = ~Perc, color = ~Unit, type = "bar") %>% 
+    layout(xaxis = list(showticklabels = FALSE),
+           yaxis = list(tickformat = "%"), 
+           barmode = 'stack', 
+           bargap = 0.75) %>% 
+    add_annotations(text = c("46%", "26%", "5%", "3%"), yanchor = "bottom", xanchor = "right"))
+
+# ggplot is used to (try to) solve the stack text label issue
+(plot_pie_spend_bunit_alt <- po_spend_bunitfct %>% 
+    ggplot() + 
+    geom_bar(mapping = aes(x = 0, y = Perc, fill = Unit), stat = 'identity'))
 
 # Data Tables -------------------------------------------------------------
 
@@ -184,7 +202,8 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
     mutate(Unit = paste(as.character(Month), "Total")) %>% 
     select(Month, Unit, everything()))
 
-(po_prev2mos_gt_table <- po_prev2mos_bunit_table %>% summarise(Month = NA, Unit = "Grand Total", Count = sum(Count), Sum = sum(Sum)))
+(po_prev2mos_gt_table <- po_prev2mos_bunit_table %>% 
+    summarise(Month = NA, Unit = "Grand Total", Count = sum(Count), Sum = sum(Sum)))
 
 (po_prev2mos_all_table <- bind_rows(po_2moago_bunit_table, 
                                     po_prev2mos_bunit_table[1,], 
@@ -193,15 +212,29 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
     ungroup(Month) %>% 
     select(-Month))
 
-(po_prev2mos_all_datatable <- DT::datatable(po_prev2mos_all_table,
-                                            rownames = FALSE, 
-                                            options = list(dom = "t")) %>% 
-    formatCurrency(c("Sum")) %>% 
-    formatStyle('Unit', 
-                target = 'row',
-                fontWeight = styleEqual(c("May Total", "Jun Total"), c('bold', 'bold')),
-                backgroundColor = styleEqual(c("May Total", "Jun Total"), c("#dedede", "#dedede")))
-  )
+# (po_prev2mos_all_datatable <- DT::datatable(po_prev2mos_all_table,
+#                                             rownames = FALSE, 
+#                                             options = list(dom = "t")) %>% 
+#     formatCurrency(c("Sum")) %>% 
+#     formatStyle('Unit', 
+#                 target = 'row',
+#                 fontWeight = styleEqual(c("May Total", "Jun Total"), c('bold', 'bold')),
+#                 backgroundColor = styleEqual(c("May Total", "Jun Total"), c("#dedede", "#dedede"))))
+
+(po_spend_bunit_table <- po_spend_bunit %>% 
+    select(Unit, Count, Sum))
+
+(po_spend_gt_table <- po_spend_bunit_table %>% 
+    summarise(Unit = "Grand Total",  Count = sum(Count), Sum = sum(Sum)))
+
+
+(po_spend_bunit_all <- bind_rows(po_spend_bunit_table,
+                                 po_spend_gt_table))
+
+(po_spend_bunit_dt <- DT::datatable(po_spend_bunit_all, 
+                                    rownames = FALSE, 
+                                    options = list(dom = "t")) %>%
+    formatCurrency(c("Sum")))
 
 # Shiny -------------------------------------------------------------------
 
@@ -221,14 +254,19 @@ ui <- fluidPage(
                     DTOutput("d1_all")),
              
              column(4,
-                    h2("98th Percentile POs FY 2018"),
+                    h2("POs FY 2018"),
+                    p("With 596 outliers (2%) removed"),
                     plotlyOutput("p2_line_98pc"),
-                    # note the 596 outliers removed 
                     DTOutput("d2_98pc"))),
     tags$hr(),
-    fluidRow(column(4, DTOutput("d3_prev2mo")))
-  )
-)
+    fluidRow(column(5, 
+                    h3("POs of Previous 2 Months"),
+                    DTOutput("d3_prev2mo")),
+             column(7,
+                    fluidRow(
+                      h3("YTD Spend by Unit"), 
+                      column(6, plotlyOutput("p3_pie_spend_bunit")),
+                      column(6, DTOutput("d4_ytd_bunit")))))))
 
 server <- function(input, output) {
   
@@ -256,6 +294,17 @@ server <- function(input, output) {
                                               target = 'row',
                                               fontWeight = styleEqual(c("May Total", "Jun Total"), c('bold', 'bold')),
                                               backgroundColor = styleEqual(c("May Total", "Jun Total"), c("#dedede", "#dedede"))))
+  
+  output$p3_pie_spend_bunit <- renderPlotly(plot_pie_spend_bunit_alt)
+  
+  output$d4_ytd_bunit <- renderDT(DT::datatable(po_spend_bunit_all, 
+                                                rownames = FALSE, 
+                                                options = list(dom = "t")) %>%
+                                    formatCurrency(c("Sum")) %>% 
+                                    formatStyle('Unit',
+                                                target = 'row',
+                                                fontWeight = styleEqual(c("Grand Total"), c('bold')), 
+                                                backgroundColor = styleEqual(c("Grand Total"), c("#dedede"))))
 }
 
 shinyApp(ui, server)

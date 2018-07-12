@@ -97,14 +97,15 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
     group_by(Unit) %>% 
     summarise(Sum = sum(`Sum Amount`), Count = n()) %>%
     mutate(Perc = Sum / po_sum[[1]]) %>% 
-    arrange(Perc))
+    arrange(desc(Perc)))
 
 # Putting Unit sorted by percent into factors, so that plotly can plot in correct order.
 (bunit_spend_fct <- po_spend_bunit %>% 
     pull(Unit))
 
 (po_spend_bunitfct <- po_spend_bunit %>% 
-    mutate_at("Unit", ~parse_factor(., levels = bunit_spend_fct)))
+    mutate_at("Unit", ~parse_factor(., levels = bunit_spend_fct)) %>% 
+    mutate(CumSum = cumsum(Perc) - 0.5 * Perc))
 
 # Plotting ----------------------------------------------------------------
 
@@ -144,18 +145,19 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 
 (plot_monthly_po_count <- plot_ly(monthly_po_spend) %>% add_lines(x = ~Month, y = ~Monthly_Count))
 
+# "Standing pie graph" 
+# TODO: Add x axis label: BUnit, take out legend
 (plot_pie_spend_bunit <- po_spend_bunitfct %>% 
     plot_ly(x = 0, y = ~Perc, color = ~Unit, type = "bar") %>% 
-    layout(xaxis = list(showticklabels = FALSE),
-           yaxis = list(tickformat = "%"), 
+    add_text(x = 0, y = ~CumSum, text = ~Unit, textfont = list(color = c("#000000"), size = 12)) %>% # make text labels go to half of current y
+    layout(xaxis = list(title = "Business Unit",
+                        showticklabels = FALSE, 
+                        range = list(-0.5, 0.5)),
+           yaxis = list(title = "", 
+                        tickformat = "%"), 
            barmode = 'stack', 
-           bargap = 0.75) %>% 
-    add_annotations(text = c("46%", "26%", "5%", "3%"), yanchor = "bottom", xanchor = "right"))
-
-# ggplot is used to (try to) solve the stack text label issue
-(plot_pie_spend_bunit_alt <- po_spend_bunitfct %>% 
-    ggplot() + 
-    geom_bar(mapping = aes(x = 0, y = Perc, fill = Unit), stat = 'identity'))
+           bargap = 0.35, 
+           showlegend = FALSE))
 
 # Data Tables -------------------------------------------------------------
 
@@ -259,14 +261,15 @@ ui <- fluidPage(
                     plotlyOutput("p2_line_98pc"),
                     DTOutput("d2_98pc"))),
     tags$hr(),
-    fluidRow(column(5, 
+    fluidRow(column(6, 
                     h3("POs of Previous 2 Months"),
                     DTOutput("d3_prev2mo")),
-             column(7,
+             column(6,
                     fluidRow(
-                      h3("YTD Spend by Unit"), 
-                      column(6, plotlyOutput("p3_pie_spend_bunit")),
-                      column(6, DTOutput("d4_ytd_bunit")))))))
+                      h3("FY18 Total Spend by Business Unit"), 
+                      column(4, align = "center", plotlyOutput("p3_pie_spend_bunit")),
+                      column(8, DTOutput("d4_ytd_bunit"))))),
+    tags$hr()))
 
 server <- function(input, output) {
   
@@ -295,7 +298,7 @@ server <- function(input, output) {
                                               fontWeight = styleEqual(c("May Total", "Jun Total"), c('bold', 'bold')),
                                               backgroundColor = styleEqual(c("May Total", "Jun Total"), c("#dedede", "#dedede"))))
   
-  output$p3_pie_spend_bunit <- renderPlotly(plot_pie_spend_bunit_alt)
+  output$p3_pie_spend_bunit <- renderPlotly(plot_pie_spend_bunit)
   
   output$d4_ytd_bunit <- renderDT(DT::datatable(po_spend_bunit_all, 
                                                 rownames = FALSE, 

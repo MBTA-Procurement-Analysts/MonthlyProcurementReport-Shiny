@@ -58,10 +58,29 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
                 "Jan", "Feb", "Mar", "Apr", "May", "Jun")
 
 
+# PER LINE ITEMS
+
+(raw_req <- raw_po %>% 
+    mutate(Month = month(`PO Date`, label = TRUE, abbr = TRUE)) %>% # Month for PO, in factor
+    mutate_at("Month", ~parse_factor(., levels = fy_factors)) %>% 
+    select(-Line) %>% 
+    group_by(`PO No.`) %>% 
+    mutate(`Sum` = sum(`Sum Amount`)) %>% 
+    select(Sum, everything()) %>%
+    select(Month, everything())) # bump Month to first 
+
+# PER PO, DISTINCT VARS BY LINE ITEM HAS BEEN REMOVED
+
 (raw_po %<>% 
     mutate(Month = month(`PO Date`, label = TRUE, abbr = TRUE)) %>% # Month for PO, in factor
     mutate_at("Month", ~parse_factor(., levels = fy_factors)) %>% 
-    select(Month, everything())) # bump Month to first 
+    select(-Line) %>% 
+    group_by(`PO No.`) %>% 
+    mutate(Sum = sum(`Sum Amount`), Sum_Qty = sum(`PO Qty`)) %>% 
+    select(Month, everything(), -`PO Qty`, -`Req Line`, -`Sum Amount`, -Item, -`Mfg Itm ID`, -`Mfg ID`, -`Req ID`) %>% 
+    ungroup(`Po No.`) %>% 
+    dplyr::distinct() %>% 
+    rename(`Sum Amount` = Sum))
 
 # 0 to 98 percentile of PO, in Sum Amount
 (po_98perc <- raw_po %>% 
@@ -107,6 +126,14 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
     mutate_at("Unit", ~parse_factor(., levels = bunit_spend_fct)) %>% 
     mutate(CumSum = cumsum(Perc) - 0.5 * Perc))
 
+# Outputs the median. 5%ile, abd 95%ile of 98%ile POs, by month 
+(po_month_98perc_9505 <- po_98perc %>% 
+    group_by(Month) %>%
+    arrange(`Sum Amount`) %>% 
+    summarise(Median = median(`Sum Amount`), 
+              NinetyFifthPct = dplyr::nth(`Sum Amount`, round(0.95 * n())),
+              FifthPct = dplyr::nth(`Sum Amount`, round(0.05 * n()))))
+
 # Plotting ----------------------------------------------------------------
 
 (plot_box_month_all <- raw_po %>% 
@@ -128,7 +155,7 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
             marker = list(symbol = 200,
                           size = 8)) %>% 
     layout(xaxis = list(title = "FY '18 Month"),
-           yaxis = list(title = "Monthly Sum (98%ile)")))
+           yaxis = list(title = "Monthly Sum")))
 
 (plot_line_month_all <- monthly_all %>% 
     plot_ly(x = ~`Month`, 
@@ -141,9 +168,11 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
     layout(xaxis = list(title = "FY '18 Month"),
            yaxis = list(title = "Monthly Sum")))
 
-(plot_monthly_po_spend <- plot_ly(monthly_po_spend) %>% add_lines(x = ~Month, y = ~Monthly_Sum))
+(plot_monthly_po_spend <- plot_ly(monthly_po_spend) %>% 
+    add_lines(x = ~Month, y = ~Monthly_Sum))
 
-(plot_monthly_po_count <- plot_ly(monthly_po_spend) %>% add_lines(x = ~Month, y = ~Monthly_Count))
+(plot_monthly_po_count <- plot_ly(monthly_po_spend) %>% 
+    add_lines(x = ~Month, y = ~Monthly_Count))
 
 # "Standing pie graph" 
 # TODO: Add x axis label: BUnit, take out legend
@@ -158,6 +187,23 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
            barmode = 'stack', 
            bargap = 0.35, 
            showlegend = FALSE))
+
+
+(plot_line_mean_month_98perc <- po_month_98perc_9505 %>% 
+    plot_ly(x = ~Month, 
+            y = ~NinetyFifthPct,
+            line = list(color = 'transparent'), 
+            name = "95th Percentile", type = 'scatter', mode = 'lines', showlegend = FALSE) %>% 
+    add_trace(x = ~Month,
+              y = ~FifthPct,
+              fill = 'tonexty',
+              line = list(color = ' transparent'),
+              fillcolor = 'rgba(0,0,255,0.2)',
+              name = "5th Percentile") %>% 
+    add_trace(x = ~Month,
+              y = ~Median, 
+              line = list(color = 'rgb(0,0,255)'), 
+              name = "Median"))
 
 # Data Tables -------------------------------------------------------------
 
@@ -252,12 +298,13 @@ ui <- fluidPage(
     tags$hr(),
     fluidRow(column(8, 
                     h2("All POs FY 2018"),
+                    p("With 12,378 POs"),
                     plotlyOutput("p1_line_all"),
                     DTOutput("d1_all")),
              
              column(4,
                     h2("POs FY 2018"),
-                    p("With 596 outliers (2%) removed"),
+                    p("With 248 outliers (2%) removed"),
                     plotlyOutput("p2_line_98pc"),
                     DTOutput("d2_98pc"))),
     tags$hr(),
@@ -311,3 +358,5 @@ server <- function(input, output) {
 }
 
 shinyApp(ui, server)
+
+# Scratchpad --------------------------------------------------------------

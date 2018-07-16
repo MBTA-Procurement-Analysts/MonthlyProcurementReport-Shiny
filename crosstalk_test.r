@@ -14,6 +14,9 @@ library(shiny)
 library(crosstalk)
 library(magrittr)
 
+# Clear workspace
+rm(list = ls())
+
 setwd("C:/Users/nguo/Documents/github/MonthlyProcurementReport-Shiny")
 
 # Plotly APIs
@@ -151,10 +154,10 @@ server <- function(input, output) {
   selected <- input$d1_rows_selected
   
   if (!length(selected)) {
-    share_raw_po %>% 
+    plot <- share_raw_po %>% 
       group_by(Month) %>% 
-      summarise(summarise(Monthly_Sum = sum(`Sum Amount`)))
-    # NOT DONE YET
+      summarise(Monthly_Sum = sum(`Sum Amount`)) %>% 
+      plot_ly(x = ~Month, y=~"Sum Amount")
   }
   
   output$p1_line_all <- renderPlotly(plot_line_month_all)

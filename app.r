@@ -26,14 +26,16 @@ Sys.setenv("plotly_api_key" = "1qC2QkZBYFrJzOG9RW9i")
 setwd("C:/Users/nguo/Documents/github/MonthlyProcurementReport-Shiny")
 
 # Two previous months, in chronological order
+
 prevmos <- c("May", "Jun")
 
+# or use this function that takes date of your local machine.
+## prevmos <- as.character(month(month(today()) - c(2,1), label = TRUE, abbr = TRUE))
 
 # Constants, Functions ----------------------------------------------------
 
 # Dollar Formatting for Tables, not used now since DT can format itself
 usd <- dollar_format(largest_with_cents = 1e+15, prefix = "$")
-
 
 # FY Month Factors, July first
 fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec", 

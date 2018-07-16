@@ -45,6 +45,7 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 
 # Data Import -------------------------------------------------------------
 
+# Raw file before 7/16/2018
 (raw_po <- readxl::read_excel("plotly-report.xlsx", 
                               sheet = "sheet1", 
                               skip = 1, 
@@ -52,6 +53,13 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
                                             "text", "text", "text", "text", "text", 
                                             "numeric", "numeric", "text", "date", "text", 
                                             "numeric")))
+# Raw file after 7/16/2018
+(raw_po <- readxl::read_excel("07162018-1-Spending-sheet.xlsx", 
+                              sheet = "Raw Data", 
+                              col_types = c("text", "text", "numeric", "text", "date", 
+                                            "text", "text", "text", "text", "text", 
+                                            "numeric", "numeric", "text", "text", "text", 
+                                            "text")))
 
 # from Pivot table, only a groupby month and unit summary
 (pivot_po <- readxl::read_excel("plotly-report.xlsx", sheet = "Monthly PO Breakdown"))
@@ -92,7 +100,7 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
     select(-Line) %>% 
     group_by(`PO No.`) %>% 
     mutate(Sum = sum(`Sum Amount`), Sum_Qty = sum(`PO Qty`)) %>% 
-    select(Month, everything(), -`PO Qty`, -`Req Line`, -`Sum Amount`, -Item, -`Mfg Itm ID`, -`Mfg ID`, -`Req ID`) %>% 
+    select(Month, everything(), -`PO Qty`, -`Sum Amount`, -`Mfg Itm ID`, -`Mfg ID`, -`Level 1`, -`Level 2`) %>% 
     ungroup(`Po No.`) %>% 
     dplyr::distinct() %>% 
     rename(`Sum Amount` = Sum))

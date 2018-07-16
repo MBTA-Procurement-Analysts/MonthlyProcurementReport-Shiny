@@ -14,6 +14,8 @@ library(shiny)
 library(crosstalk)
 library(magrittr)
 
+# Clear workspace
+rm(list = ls())
 
 # Plotly APIs
 Sys.setenv("plotly_username" = "Zenmai0822")
@@ -108,7 +110,7 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 (po_98perc_top10 <- po_98perc %>% 
     top_n(10, `Sum Amount`) %>% 
     arrange(desc(`Sum Amount`)) %>% 
-    select(`PO No.`, `PO Date`, `Sum Amount`))
+    select(`PO No.`, `Month`, `Sum Amount`))
 
 (monthly_all <- raw_po %>% 
     group_by(Month) %>% 
@@ -118,7 +120,7 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 (po_all_top10 <- raw_po %>% 
     top_n(10, `Sum Amount`) %>% 
     arrange(desc(`Sum Amount`)) %>% 
-    select(`PO No.`, `PO Date`, `Sum Amount`))
+    select(`PO No.`, `Month`, `Sum Amount`))
 
 # Spend by BUnit
 
@@ -229,11 +231,9 @@ plot_line_mean_month_98perc <- po_month_98perc_9505 %>%
 
 # Data Tables -------------------------------------------------------------
 
-(po_98perc_top10_table <- po_98perc_top10 %>% 
-   mutate_at("PO Date", date))
+(po_98perc_top10_table <- po_98perc_top10)
 
-(po_all_top10_table <- po_all_top10 %>% 
-    mutate_at("PO Date", date))
+(po_all_top10_table <- po_all_top10)
 
 # Hack, not a tidy table, don't learn from this
 

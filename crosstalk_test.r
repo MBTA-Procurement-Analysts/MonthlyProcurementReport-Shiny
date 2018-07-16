@@ -98,7 +98,7 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 (po_98perc_top10 <- po_98perc %>% 
     top_n(10, `Sum Amount`) %>% 
     arrange(desc(`Sum Amount`)) %>% 
-    select(`PO No.`, `PO Date`, `Sum Amount`))
+    select(`PO No.`, `Month`, `Sum Amount`))
 
 (monthly_all <- raw_po %>% 
     group_by(Month) %>% 
@@ -108,7 +108,7 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 (po_all_top10 <- raw_po %>% 
     top_n(10, `Sum Amount`) %>% 
     arrange(desc(`Sum Amount`)) %>% 
-    select(`PO No.`, `PO Date`, `Sum Amount`))
+    select(`PO No.`, `Month`, `Sum Amount`))
 
 # Spend by BUnit
 
@@ -149,52 +149,72 @@ ui <- fluidPage(
 
 server <- function(input, output) {
   
-  share_raw_po <- ShareData$new(raw_po)
+  share_raw_po <- SharedData$new(raw_po)
   
-  selected <- input$d1_rows_selected
+  output$p1 <- renderPlotly(
+    {
+      selected <- input$d1_rows_selected
+      
+      if (!length(selected)) {
+        plot <- crosstalk::data(share_raw_po) %>% 
+          dplyr::group_by(Month) %>% 
+          summarise(Monthly_Sum = sum(`Sum Amount`)) %>% 
+          plot_ly(x = ~Month, SSy = ~"Sum Amount", type = "scatter", mode = "line", name = "All Data") %>% 
+          highlight("plotly_selected", color = I('red'), selected = attrs_selected(name = 'Selected PO(s)'))
+      } else if (length(selected)) {
+        plot_selected <- raw_po %>% 
+          plot_ly() %>% 
+          add_trace(x = ~Month, y = ~"Sum Amount", type = "scatter", mode = "line", color = I('black'), name = "All Data")
+        plot_selected <- add_trace(plot_selected, data = raw_po[selected, , drop = F], x = ~Month, y = ~"Sum Amount", type = "scatter", 
+                                   mode = "line", color = I("red"), name = "selected PO(s)")
+      }
+    }
+  )
   
-  if (!length(selected)) {
-    plot <- share_raw_po %>% 
-      group_by(Month) %>% 
-      summarise(Monthly_Sum = sum(`Sum Amount`)) %>% 
-      plot_ly(x = ~Month, y=~"Sum Amount")
-  }
+  output$d1 <- DT::renderDataTable({
+    DT::datatable(po_all_top10, 
+                  rownames = FALSE,
+                  options = list(dom = "t",
+                                 columnDefs = list(list(className = 'dt-left', targets = 0:1),
+                                                   list(className = 'dt-right', targets = 2))),
+                  caption = "Top 10 POs from all")
+  })
   
-  output$p1_line_all <- renderPlotly(plot_line_month_all)
-  output$d1_all <- renderDT(DT::datatable(po_all_top10_table, 
-                                          rownames = FALSE,
-                                          options = list(dom = "t",
-                                                         columnDefs = list(list(className = 'dt-left', targets = 0:1),
-                                                                           list(className = 'dt-right', targets = 2))),
-                                          caption = "Top 10 POs from all"))
-  
-  output$p2_line_98pc <- renderPlotly(plot_line_month_98perc)
-  output$d2_98pc <- renderDT(DT::datatable(po_98perc_top10_table, 
-                                           rownames = FALSE,
-                                           options = list(dom = "t",
-                                                          columnDefs = list(list(className = 'dt-left', targets = 0:1),
-                                                                            list(className = 'dt-right', targets = 2))),
-                                           caption = "Top 10 POs from 98% percentile."))
-  
-  output$d3_prev2mo <- renderDT(DT::datatable(po_prev2mos_all_table,
-                                              rownames = FALSE, 
-                                              options = list(dom = "t")) %>% 
-                                  formatCurrency(c("Sum")) %>% 
-                                  formatStyle('Unit', 
-                                              target = 'row',
-                                              fontWeight = styleEqual(c("May Total", "Jun Total"), c('bold', 'bold')),
-                                              backgroundColor = styleEqual(c("May Total", "Jun Total"), c("#dedede", "#dedede"))))
-  
-  output$p3_pie_spend_bunit <- renderPlotly(plot_pie_spend_bunit)
-  
-  output$d4_ytd_bunit <- renderDT(DT::datatable(po_spend_bunit_all, 
-                                                rownames = FALSE, 
-                                                options = list(dom = "t")) %>%
-                                    formatCurrency(c("Sum")) %>% 
-                                    formatStyle('Unit',
-                                                target = 'row',
-                                                fontWeight = styleEqual(c("Grand Total"), c('bold')), 
-                                                backgroundColor = styleEqual(c("Grand Total"), c("#dedede"))))
+  # output$p1_line_all <- renderPlotly(plot_line_month_all)
+  # output$d1_all <- renderDT(DT::datatable(po_all_top10_table, 
+  #                                         rownames = FALSE,
+  #                                         options = list(dom = "t",
+  #                                                        columnDefs = list(list(className = 'dt-left', targets = 0:1),
+  #                                                                          list(className = 'dt-right', targets = 2))),
+  #                                         caption = "Top 10 POs from all"))
+  # 
+  # output$p2_line_98pc <- renderPlotly(plot_line_month_98perc)
+  # output$d2_98pc <- renderDT(DT::datatable(po_98perc_top10_table, 
+  #                                          rownames = FALSE,
+  #                                          options = list(dom = "t",
+  #                                                         columnDefs = list(list(className = 'dt-left', targets = 0:1),
+  #                                                                           list(className = 'dt-right', targets = 2))),
+  #                                          caption = "Top 10 POs from 98% percentile."))
+  # 
+  # output$d3_prev2mo <- renderDT(DT::datatable(po_prev2mos_all_table,
+  #                                             rownames = FALSE, 
+  #                                             options = list(dom = "t")) %>% 
+  #                                 formatCurrency(c("Sum")) %>% 
+  #                                 formatStyle('Unit', 
+  #                                             target = 'row',
+  #                                             fontWeight = styleEqual(c("May Total", "Jun Total"), c('bold', 'bold')),
+  #                                             backgroundColor = styleEqual(c("May Total", "Jun Total"), c("#dedede", "#dedede"))))
+  # 
+  # output$p3_pie_spend_bunit <- renderPlotly(plot_pie_spend_bunit)
+  # 
+  # output$d4_ytd_bunit <- renderDT(DT::datatable(po_spend_bunit_all, 
+  #                                               rownames = FALSE, 
+  #                                               options = list(dom = "t")) %>%
+  #                                   formatCurrency(c("Sum")) %>% 
+  #                                   formatStyle('Unit',
+  #                                               target = 'row',
+  #                                               fontWeight = styleEqual(c("Grand Total"), c('bold')), 
+  #                                               backgroundColor = styleEqual(c("Grand Total"), c("#dedede"))))
 }
 
 shinyApp(ui, server)

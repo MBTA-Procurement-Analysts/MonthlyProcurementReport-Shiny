@@ -1,32 +1,3 @@
-# MonthlyProcurementReport-Shiny/app.r
-# Recreating a MPR using Plotly and Shiny
-# By: Nianmin Guo
-
-# Setup -------------------------------------------------------------------
-
-library(tidyverse)
-library(plotly)
-library(kableExtra)
-library(lubridate)
-library(DT)
-library(scales)
-library(shiny)
-library(crosstalk)
-library(magrittr)
-
-# Clear workspace
-rm(list = ls())
-
-# Plotly APIs
-Sys.setenv("plotly_username" = "Zenmai0822")
-Sys.setenv("plotly_api_key" = "1qC2QkZBYFrJzOG9RW9i")
-
-
-# VARIABLES  -- VERIFY BEFORE RUNNING -------------------------------------
-
-# Working Directory
-setwd("C:/Users/nguo/Documents/github/MonthlyProcurementReport-Shiny")
-
 # Two previous months, in chronological order
 
 prevmos <- c("May", "Jun")
@@ -169,32 +140,32 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 # Plotting: Using ---------------------------------------------------------
 
 (plot_line_month_98perc <- monthly_98perc %>% 
-  plot_ly(x = ~Month, 
-          y = ~`Monthly_Sum`, 
-          type = "scatter", 
-          mode = "lines",
-          hoveron = "points", 
-          marker = list(symbol = 200,
-                        size = 8)) %>% 
-  layout(xaxis = list(title = "FY '18 Month"),
-         yaxis = list(title = "Monthly Sum"),
-         shapes = list(
-           list(type = "rect", 
-           fillcolor = "blue",
-           line = list(color = "blue"), 
-           opacity = 0.2, 
-           x0 = 'Jul', x1 = 'Jun', xref = "x",
-           y0 = po_month_98perc_median$Lower_Limit,
-           y1 = po_month_98perc_median$Upper_Limit,
-           yref = "y"), 
-           list(type = "rect", 
-           fillcolor = "blue",
-           line = list(color = "blue"), 
-           opacity = 0.2, 
-           x0 = 'Jul', x1 = 'Jun', xref = "x",
-           y0 = po_month_98perc_median$Lower_Limit2x,
-           y1 = po_month_98perc_median$Upper_Limit2x,
-           yref = "y"))))
+   plot_ly(x = ~Month, 
+           y = ~`Monthly_Sum`, 
+           type = "scatter", 
+           mode = "lines",
+           hoveron = "points", 
+           marker = list(symbol = 200,
+                         size = 8)) %>% 
+   layout(xaxis = list(title = "FY '18 Month"),
+          yaxis = list(title = "Monthly Sum"),
+          shapes = list(
+            list(type = "rect", 
+                 fillcolor = "blue",
+                 line = list(color = "blue"), 
+                 opacity = 0.2, 
+                 x0 = 'Jul', x1 = 'Jun', xref = "x",
+                 y0 = po_month_98perc_median$Lower_Limit,
+                 y1 = po_month_98perc_median$Upper_Limit,
+                 yref = "y"), 
+            list(type = "rect", 
+                 fillcolor = "blue",
+                 line = list(color = "blue"), 
+                 opacity = 0.2, 
+                 x0 = 'Jul', x1 = 'Jun', xref = "x",
+                 y0 = po_month_98perc_median$Lower_Limit2x,
+                 y1 = po_month_98perc_median$Upper_Limit2x,
+                 yref = "y"))))
 
 plot_line_month_all <- monthly_all %>% 
   plot_ly(x = ~`Month`, 
@@ -308,83 +279,40 @@ plot_pie_spend_bunit <- po_spend_bunitfct %>%
                                  po_spend_gt_table))
 
 # Shiny -------------------------------------------------------------------
+# titlelogo <- fluidPage(fillRow(img(src = "t-logo.jpg", 
+#                  width = "28px",
+#                  height = "28px",
+#                  class = "p-5"), p("Procurement Report FY 2018"), flex = NA))
 
-ui <- fluidPage(responsive = TRUE, 
-                #theme = "bootstrap.css",
-                verticalLayout(
-                  fluidRow(column(8, 
-                                  h1("Overall PO Count and Spend")),
-                           column(2, offset = 2, 
-                                  img(src = "t-logo.jpg", 
-                                      style = "float:right",
-                                      width = "75px", 
-                                      height = "75px",
-                                      class = "p-1"))),
-                  tags$hr(),
-                  fluidRow(column(8, 
-                                  h2("All POs FY 2018"),
-                                  p("With 12,377 POs"),
-                                  plotlyOutput("p1_line_all"),
-                                  DTOutput("d1_all")),
-                           
-                           column(4,
-                                  h2("POs FY 2018"),
-                                  p("With 248 outliers (2%) removed. Shaded area represents normal range (1SD)."),
-                                  plotlyOutput("p2_line_98pc"),
-                                  DTOutput("d2_98pc"))),
-                  tags$hr(),
-                  fluidRow(column(6, 
-                                  h3("POs of Previous 2 Months"),
-                                  DTOutput("d3_prev2mo")),
-                           column(6,
-                                  fluidRow(
-                                    h3("FY18 Total Spend by Business Unit"), 
-                                    column(4, align = "center", plotlyOutput("p3_pie_spend_bunit")),
-                                    column(8, DTOutput("d4_ytd_bunit"))))),
-                  tags$hr(),
-                  p(style = "text-align:right", "Draft for Discussion and Policy Purposes Only")))
-
-server <- function(input, output) {
-  
-  output$p1_line_all <- renderPlotly(plot_line_month_all)
-  output$d1_all <- renderDT(DT::datatable(po_all_top10_table, 
-                                          rownames = FALSE,
-                                          options = list(dom = "t",
-                                                         columnDefs = list(list(className = 'dt-left', targets = 0:1),
-                                                                           list(className = 'dt-right', targets = 2))),
-                                          caption = "Top 10 POs from all") %>% 
-                              formatCurrency(c("Sum Amount")))
-  
-  output$p2_line_98pc <- renderPlotly(plot_line_month_98perc)
-  output$d2_98pc <- renderDT(DT::datatable(po_98perc_top10_table, 
-                                           rownames = FALSE,
-                                           options = list(dom = "t",
-                                                          columnDefs = list(list(className = 'dt-left', targets = 0:1),
-                                                                            list(className = 'dt-right', targets = 2))),
-                                           caption = "Top 10 POs from 98% percentile.") %>% 
-                               formatCurrency(c("Sum Amount")))
-  
-  output$d3_prev2mo <- renderDT(DT::datatable(po_prev2mos_all_table,
-                                              rownames = FALSE, 
-                                              options = list(dom = "t")) %>% 
-                                  formatCurrency(c("Sum")) %>% 
-                                  formatStyle('Unit', 
-                                              target = 'row',
-                                              fontWeight = styleEqual(c("May Total", "Jun Total"), c('bold', 'bold')),
-                                              backgroundColor = styleEqual(c("May Total", "Jun Total"), c("#dedede", "#dedede"))))
-  
-  output$p3_pie_spend_bunit <- renderPlotly(plot_pie_spend_bunit)
-  
-  output$d4_ytd_bunit <- renderDT(DT::datatable(po_spend_bunit_all, 
-                                                rownames = FALSE, 
-                                                options = list(dom = "t")) %>%
-                                    formatCurrency(c("Sum")) %>% 
-                                    formatStyle('Unit',
-                                                target = 'row',
-                                                fontWeight = styleEqual(c("Grand Total"), c('bold')), 
-                                                backgroundColor = styleEqual(c("Grand Total"), c("#dedede"))))
-}
-
-shinyApp(ui, server)
-
-# Scratchpad --------------------------------------------------------------
+uipg2 <- tabPanel("PO Count and Spend", verticalLayout(
+  fluidRow(column(8, 
+                  h1("Overall PO Count and Spend")),
+           column(2, offset = 2, 
+                  img(src = "t-logo.jpg", 
+                      style = "float:right",
+                      width = "75px", 
+                      height = "75px",
+                      class = "p-1"))),
+  tags$hr(),
+  fluidRow(column(8, 
+                  h2("All POs FY 2018"),
+                  p("With 12,377 POs"),
+                  plotlyOutput("p1_line_all"),
+                  DTOutput("d1_all")),
+           
+           column(4,
+                  h2("POs FY 2018"),
+                  p("With 248 outliers (2%) removed. Shaded area represents normal range (1SD)."),
+                  plotlyOutput("p2_line_98pc"),
+                  DTOutput("d2_98pc"))),
+  tags$hr(),
+  fluidRow(column(6, 
+                  h3("POs of Previous 2 Months"),
+                  DTOutput("d3_prev2mo")),
+           column(6,
+                  fluidRow(
+                    h3("FY18 Total Spend by Business Unit"), 
+                    column(4, align = "center", plotlyOutput("p3_pie_spend_bunit")),
+                    column(8, DTOutput("d4_ytd_bunit"))))),
+  tags$hr(),
+  p(style = "text-align:right", "Draft for Discussion and Policy Purposes Only")))

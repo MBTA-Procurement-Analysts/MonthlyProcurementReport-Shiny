@@ -40,7 +40,7 @@ function(input, output) {
                                               fontWeight = styleEqual(c("May Total", "Jun Total"), c('bold', 'bold')),
                                               backgroundColor = styleEqual(c("May Total", "Jun Total"), c("#dedede", "#dedede"))))
   
-  output$pg2_p3_pie_spend_bunit <- renderPlotly(plot_pie_spend_bunit)
+  output$pg2_p3_pie_spend_bunit <- renderPlotly(plot_pie_count_bunit)
   
   output$pg2_d4_ytd_bunit <- renderDT(DT::datatable(po_spend_bunit_all, 
                                                 rownames = FALSE, 

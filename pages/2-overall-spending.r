@@ -107,10 +107,10 @@ prevmos <- c("May", "Jun")
     arrange(desc(`Sum Amount`)) %>% 
     select(`PO No.`, `Month`, `Sum Amount`))
 
-# Spend by BUnit
+# Spend and count by BUnit
 
 (po_sum <- raw_po %>% 
-    summarise(Sum = sum(`Sum Amount`)))
+    summarise(Sum = sum(`Sum Amount`), Count = n()))
 
 (po_spend_bunit <- raw_po %>% 
     group_by(Unit) %>% 
@@ -118,13 +118,26 @@ prevmos <- c("May", "Jun")
     mutate(Perc = Sum / po_sum[[1]]) %>% 
     arrange(desc(Perc)))
 
+(po_count_bunit <- raw_po %>% 
+    group_by(Unit) %>% 
+    summarise(Sum = sum(`Sum Amount`), Count = n()) %>%
+    mutate(PercCnt = Count / po_sum[[2]]) %>% 
+    arrange(desc(PercCnt)))
+
 # Putting Unit sorted by percent into factors, so that plotly can plot in correct order.
 (bunit_spend_fct <- po_spend_bunit %>% 
+    pull(Unit))
+
+(bunit_count_fct <- po_count_bunit %>% 
     pull(Unit))
 
 (po_spend_bunitfct <- po_spend_bunit %>% 
     mutate_at("Unit", ~parse_factor(., levels = bunit_spend_fct)) %>% 
     mutate(CumSum = cumsum(Perc) - 0.5 * Perc))
+
+(po_count_bunitfct <- po_count_bunit %>% 
+    mutate_at("Unit", ~parse_factor(., levels = bunit_count_fct)) %>% 
+    mutate(CumSum = cumsum(PercCnt) - 0.5 * PercCnt))
 
 # Outputs the median. 5%ile, abd 95%ile of 98%ile POs, by month 
 (po_month_98perc_9505 <- po_98perc %>% 
@@ -167,55 +180,77 @@ plot_line_month_all <- monthly_all %>%
   layout(xaxis = list(title = "FY '18 Month"),
          yaxis = list(title = "Monthly Sum"))
 
-plot_pie_spend_bunit <- po_spend_bunitfct %>% 
-  plot_ly(x = 0, 
-          y = ~Perc, 
-          color = ~Unit, 
-          type = "bar") %>% 
-  add_text(x = 0, 
-           y = ~CumSum, 
-           text = ~Unit, 
-           textfont = list(color = c("#000000"), 
-                           size = 12)) %>% # make text labels go to half of current y
-  layout(xaxis = list(title = "Business Unit",
-                      showticklabels = FALSE, 
-                      range = list(-0.5, 0.5)),
-         yaxis = list(title = "", 
-                      tickformat = "%"), 
-         barmode = 'stack', 
-         bargap = 0.45, 
-         showlegend = FALSE)
+
+
+(plot_pie_spend_bunit <- po_spend_bunitfct %>% 
+    plot_ly(x = 0, 
+            y = ~Perc, 
+            color = ~Unit, 
+            type = "bar") %>% 
+    add_text(x = 0, 
+             y = ~CumSum, 
+             text = ~Unit, 
+             textfont = list(color = c("#000000"), 
+                             size = 12)) %>% # make text labels go to half of current y
+    layout(xaxis = list(title = "Business Unit",
+                        showticklabels = FALSE, 
+                        range = list(-0.5, 0.5)),
+           yaxis = list(title = "% Spend", 
+                        tickformat = "%"), 
+           barmode = 'stack', 
+           bargap = 0.45, 
+           showlegend = FALSE))
+
+(plot_pie_count_bunit <- po_count_bunitfct %>% 
+    plot_ly(x = 0, 
+            y = ~PercCnt, 
+            color = ~Unit, 
+            type = "bar") %>% 
+    add_text(x = 0, 
+             y = ~CumSum, 
+             text = ~Unit, 
+             textfont = list(color = c("#000000"), 
+                             size = 12)) %>% # make text labels go to half of current y
+    layout(xaxis = list(title = "Business Unit",
+                        showticklabels = FALSE, 
+                        range = list(-0.5, 0.5)),
+           yaxis = list(title = "PO Count", 
+                        tickformat = "%"), 
+           barmode = 'stack', 
+           bargap = 0.45, 
+           showlegend = FALSE))
+
 
 # Plotting: Unused --------------------------------------------------------
 
 # 98 percentile monthly line plot with median +- sd overlays, not using since not significant 
 plot_line_month_98perc_median <- monthly_98perc %>% 
-   plot_ly(x = ~Month, 
-           y = ~`Monthly_Sum`, 
-           type = "scatter", 
-           mode = "lines",
-           hoveron = "points", 
-           marker = list(symbol = 200,
-                         size = 8)) %>% 
-   layout(xaxis = list(title = "FY '18 Month"),
-          yaxis = list(title = "Monthly Sum"),
-          shapes = list(
-            list(type = "rect", 
-                 fillcolor = "blue",
-                 line = list(color = "blue"), 
-                 opacity = 0.2, 
-                 x0 = 'Jul', x1 = 'Jun', xref = "x",
-                 y0 = po_month_98perc_median$Lower_Limit,
-                 y1 = po_month_98perc_median$Upper_Limit,
-                 yref = "y"), 
-            list(type = "rect", 
-                 fillcolor = "blue",
-                 line = list(color = "blue"), 
-                 opacity = 0.2, 
-                 x0 = 'Jul', x1 = 'Jun', xref = "x",
-                 y0 = po_month_98perc_median$Lower_Limit2x,
-                 y1 = po_month_98perc_median$Upper_Limit2x,
-                 yref = "y")))
+  plot_ly(x = ~Month, 
+          y = ~`Monthly_Sum`, 
+          type = "scatter", 
+          mode = "lines",
+          hoveron = "points", 
+          marker = list(symbol = 200,
+                        size = 8)) %>% 
+  layout(xaxis = list(title = "FY '18 Month"),
+         yaxis = list(title = "Monthly Sum"),
+         shapes = list(
+           list(type = "rect", 
+                fillcolor = "blue",
+                line = list(color = "blue"), 
+                opacity = 0.2, 
+                x0 = 'Jul', x1 = 'Jun', xref = "x",
+                y0 = po_month_98perc_median$Lower_Limit,
+                y1 = po_month_98perc_median$Upper_Limit,
+                yref = "y"), 
+           list(type = "rect", 
+                fillcolor = "blue",
+                line = list(color = "blue"), 
+                opacity = 0.2, 
+                x0 = 'Jul', x1 = 'Jun', xref = "x",
+                y0 = po_month_98perc_median$Lower_Limit2x,
+                y1 = po_month_98perc_median$Upper_Limit2x,
+                yref = "y")))
 
 # plot_box_month_all <- raw_po %>% 
 #   plot_ly(x = ~`Month`, 

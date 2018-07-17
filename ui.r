@@ -32,12 +32,18 @@ setwd("C:/Users/nguo/Documents/github/MonthlyProcurementReport-Shiny")
 # So that the server and ui can use objects from those pages
 
 source("pages/2-overall-spending.r")
+source("pages/4-purchase-platforms.r")
 
 
 # UI Function, make sure this stays at the bottom -------------------------
 
+# titlelogo <- fluidPage(fillRow(img(src = "t-logo.jpg",
+#                                    width = "28px",
+#                                    height = "28px",
+#                                    class = "p-5"), p("Procurement Report FY 2018"), flex = NA))
+
 navbarPage(title = "Procurement Report FY 2018",
                  uipg2,
                  tabPanel("Page 3"),
-                 tabPanel("Page 4")
+                 uipg4
 )

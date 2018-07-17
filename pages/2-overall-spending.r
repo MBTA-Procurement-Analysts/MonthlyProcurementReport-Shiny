@@ -332,10 +332,6 @@ plot_line_month_98perc_median <- monthly_98perc %>%
                                  po_spend_gt_table))
 
 # Shiny -------------------------------------------------------------------
-# titlelogo <- fluidPage(fillRow(img(src = "t-logo.jpg", 
-#                  width = "28px",
-#                  height = "28px",
-#                  class = "p-5"), p("Procurement Report FY 2018"), flex = NA))
 
 uipg2 <- tabPanel("PO Count and Spend", verticalLayout(
   fluidRow(column(8, 

@@ -1,11 +1,10 @@
-# Two previous months, in chronological order
+# File: 2-overall-spendings.r
+# Created by: Mickey Guo
+# Overall FY18 PO Count and Spend, 
+#   as well as Last 2 Mo / FY18 BUnit PO Count and Spend 
 
-prevmos <- c("May", "Jun")
 
-# or use this function that takes date of your local machine.
-## prevmos <- as.character(month(month(today()) - c(2,1), label = TRUE, abbr = TRUE))
-
-# Constants, Functions ----------------------------------------------------
+# Setup Constants, Variables, Functions -----------------------------------
 
 # Dollar Formatting for Tables, not used now since DT can format itself
 usd <- dollar_format(largest_with_cents = 1e+15, prefix = "$")
@@ -14,10 +13,17 @@ usd <- dollar_format(largest_with_cents = 1e+15, prefix = "$")
 fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec", 
                 "Jan", "Feb", "Mar", "Apr", "May", "Jun")
 
+# Two previous months, in chronological order
+
+prevmos <- c("May", "Jun")
+
+# or use this function that takes date of your local machine.
+## prevmos <- as.character(month(month(today()) - c(2,1), label = TRUE, abbr = TRUE))
+
 # Data Import -------------------------------------------------------------
 
 # Raw file before 7/16/2018
-(raw_po <- readxl::read_excel("plotly-report.xlsx", 
+(raw_po <- readxl::read_excel("data/plotly-report.xlsx", 
                               sheet = "sheet1", 
                               skip = 1, 
                               col_types = c("text", "text", "numeric", "text", "date", 
@@ -25,7 +31,7 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
                                             "numeric", "numeric", "text", "date", "text", 
                                             "numeric")))
 # Raw file after 7/16/2018
-(raw_po <- readxl::read_excel("07162018-1-Spending-sheet.xlsx", 
+(raw_po <- readxl::read_excel("data/07162018-1-Spending-sheet.xlsx", 
                               sheet = "Raw Data", 
                               col_types = c("text", "text", "numeric", "text", "date", 
                                             "text", "text", "text", "text", "text", 
@@ -148,24 +154,7 @@ fy_factors <- c("Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
            marker = list(symbol = 200,
                          size = 8)) %>% 
    layout(xaxis = list(title = "FY '18 Month"),
-          yaxis = list(title = "Monthly Sum"),
-          shapes = list(
-            list(type = "rect", 
-                 fillcolor = "blue",
-                 line = list(color = "blue"), 
-                 opacity = 0.2, 
-                 x0 = 'Jul', x1 = 'Jun', xref = "x",
-                 y0 = po_month_98perc_median$Lower_Limit,
-                 y1 = po_month_98perc_median$Upper_Limit,
-                 yref = "y"), 
-            list(type = "rect", 
-                 fillcolor = "blue",
-                 line = list(color = "blue"), 
-                 opacity = 0.2, 
-                 x0 = 'Jul', x1 = 'Jun', xref = "x",
-                 y0 = po_month_98perc_median$Lower_Limit2x,
-                 y1 = po_month_98perc_median$Upper_Limit2x,
-                 yref = "y"))))
+          yaxis = list(title = "Monthly Sum")))
 
 plot_line_month_all <- monthly_all %>% 
   plot_ly(x = ~`Month`, 
@@ -198,6 +187,35 @@ plot_pie_spend_bunit <- po_spend_bunitfct %>%
          showlegend = FALSE)
 
 # Plotting: Unused --------------------------------------------------------
+
+# 98 percentile monthly line plot with median +- sd overlays, not using since not significant 
+plot_line_month_98perc_median <- monthly_98perc %>% 
+   plot_ly(x = ~Month, 
+           y = ~`Monthly_Sum`, 
+           type = "scatter", 
+           mode = "lines",
+           hoveron = "points", 
+           marker = list(symbol = 200,
+                         size = 8)) %>% 
+   layout(xaxis = list(title = "FY '18 Month"),
+          yaxis = list(title = "Monthly Sum"),
+          shapes = list(
+            list(type = "rect", 
+                 fillcolor = "blue",
+                 line = list(color = "blue"), 
+                 opacity = 0.2, 
+                 x0 = 'Jul', x1 = 'Jun', xref = "x",
+                 y0 = po_month_98perc_median$Lower_Limit,
+                 y1 = po_month_98perc_median$Upper_Limit,
+                 yref = "y"), 
+            list(type = "rect", 
+                 fillcolor = "blue",
+                 line = list(color = "blue"), 
+                 opacity = 0.2, 
+                 x0 = 'Jul', x1 = 'Jun', xref = "x",
+                 y0 = po_month_98perc_median$Lower_Limit2x,
+                 y1 = po_month_98perc_median$Upper_Limit2x,
+                 yref = "y")))
 
 # plot_box_month_all <- raw_po %>% 
 #   plot_ly(x = ~`Month`, 
@@ -297,22 +315,22 @@ uipg2 <- tabPanel("PO Count and Spend", verticalLayout(
   fluidRow(column(8, 
                   h2("All POs FY 2018"),
                   p("With 12,377 POs"),
-                  plotlyOutput("p1_line_all"),
-                  DTOutput("d1_all")),
+                  plotlyOutput("pg2_p1_line_all"),
+                  DTOutput("pg2_d1_all")),
            
            column(4,
                   h2("POs FY 2018"),
                   p("With 248 outliers (2%) removed. Shaded area represents normal range (1SD)."),
-                  plotlyOutput("p2_line_98pc"),
-                  DTOutput("d2_98pc"))),
+                  plotlyOutput("pg2_p2_line_98pc"),
+                  DTOutput("pg2_d2_98pc"))),
   tags$hr(),
   fluidRow(column(6, 
                   h3("POs of Previous 2 Months"),
-                  DTOutput("d3_prev2mo")),
+                  DTOutput("pg2_d3_prev2mo")),
            column(6,
                   fluidRow(
                     h3("FY18 Total Spend by Business Unit"), 
-                    column(4, align = "center", plotlyOutput("p3_pie_spend_bunit")),
-                    column(8, DTOutput("d4_ytd_bunit"))))),
+                    column(4, align = "center", plotlyOutput("pg2_p3_pie_spend_bunit")),
+                    column(8, DTOutput("pg2_d4_ytd_bunit"))))),
   tags$hr(),
   p(style = "text-align:right", "Draft for Discussion and Policy Purposes Only")))

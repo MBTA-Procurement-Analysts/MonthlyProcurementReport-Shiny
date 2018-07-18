@@ -21,7 +21,7 @@ prevmos <- c("May", "Jun")
 
 # Spending Thresholds (Buckets)
 # With the given numbers, the > and < should be >= and <= respectively, but "="s are removed for visual consistency.
-threshold_factors <- c(">50,000", "35,000-50,000", "<3,500")
+threshold_factors <- c("<3,500", "35,000-50,000", ">50,000")
 
 # Data Import -------------------------------------------------------------
 # This page shares some of the data used by page 2 (Overall spending)
@@ -78,7 +78,7 @@ threshold_factors <- c(">50,000", "35,000-50,000", "<3,500")
       `Sum Amount` <= 3500 ~ parse_factor("<3,500", levels = threshold_factors) 
     )))
 
-(pg4_threshold <- pg4_threshold_po %>% 
+(pg4_threshold_sum_cnt <- pg4_threshold_po %>% 
     group_by(Threshold) %>% 
     summarise(Count = n(), Spend = sum(`Sum Amount`)) %>% 
     mutate(PercCnt = Count / sum(Count), PercSum = Spend / sum(Spend)) %>% 
@@ -87,33 +87,93 @@ threshold_factors <- c(">50,000", "35,000-50,000", "<3,500")
 
 # Plots, Using ------------------------------------------------------------
 
-pg4_plot_spend_by_sum_threshold <- plot_ly(data = pg4_threshold, x = ~Threshold) %>% 
-  add_trace(y = ~Spend, type = 'bar', text = ~scales::percent(PercSum), textposition = 'outside', name = 'Sum of Spendings') %>% 
-  layout(yaxis = list(tickprefix = "$"))
+pg4_plot_thresholds <- plot_ly(data = pg4_threshold_sum_cnt, x = ~Threshold) %>% 
+  add_trace(y = ~PercSum, 
+            type = 'bar', 
+            text = ~paste(currency(Spend / 1000000, "$", digits = 1), "M"), 
+            textposition = 'outside', 
+            name = 'Sum of Spendings',
+            legendgroup = ~Threshold) %>% 
+  add_trace(y = ~PercCnt, 
+            type = 'bar', 
+            text = ~Count, 
+            textposition = 'outside', 
+            name = 'Count of POs', 
+            legendgroup = ~Threshold) %>% 
+  layout(bargap = 0.25, 
+         legend = list(orientation = 'h',
+                       xanchor = "center",
+                       x = 0.5,
+                       y = 1.1), 
+         yaxis = list(
+           tickformat = '%', 
+           title = "%"))
 
-pg4_plot_spend_by_cnt_threshold <- plot_ly(data = pg4_threshold, x = ~Threshold) %>% 
-  add_trace(y = ~Count, type = 'bar', text = ~scales::percent(PercCnt), textposition = 'outside', name = 'Count of POs') %>% 
-  layout( 
-    yaxis = list(side = 'right'))
+# layout(yaxis = list(tickprefix = "$"))
 
-(pg4_plot_thresholds <- subplot(pg4_plot_spend_by_sum_threshold, pg4_plot_spend_by_cnt_threshold) %>% 
-    layout(bargap = 0.4, 
-           legend = list(orientation = 'h')))
+pg4_plot_sum <- plot_ly(data = pg4_threshold_sum_cnt, 
+                        x = ~Threshold, 
+                        y = ~Spend, 
+                        type = "bar",
+                        showlegend = FALSE) %>% 
+  layout(bargap = 0.5, 
+         yaxis = list(title = "Sum of Spendings",
+                      tickprefix = "$",
+                      mirror = TRUE))
+
+pg4_plot_cnt <- plot_ly(data = pg4_threshold_sum_cnt, 
+                        x = ~Threshold, 
+                        y = ~Count, 
+                        type = "bar", 
+                        name = 'Count of POs', 
+                        showlegend = FALSE) %>% 
+  layout(bargap = 0.5,
+         yaxis = list(title = "Count of POs",
+                      mirror = TRUE))
+
+pg4_plot_threshold_sum_cnt <- subplot(pg4_plot_sum, 
+                                      pg4_plot_cnt, 
+                                      nrows = 2, 
+                                      shareX = TRUE,
+                                      titleY = TRUE)
 
 
 
 # Data Tables, and related data wrangling ---------------------------------
 
-pg4_threshold_gt_table <- pg4_threshold %>% 
+pg4_threshold_gt_table <- pg4_threshold_sum_cnt %>% 
   summarise(Threshold = 'Grand Total', Count = sum(Count), PercCnt = sum(PercCnt), Spend = sum(Spend), PercSum = sum(PercSum))
 
-(pg4_threshold_table <- bind_rows(pg4_threshold, pg4_threshold_gt_table) %>% 
-    dplyr::rename(`FY18 Thresholds` = `Threshold`, 
-                  `Count of POs` = `Count`, 
-                  `Percent of PO Count` = `PercCnt`, 
-                  `FY18 Spend` = `Spend`, 
-                  `Percent of FY18 Spend` = `PercSum`))
-  
+pg4_threshold_table <- bind_rows(pg4_threshold_sum_cnt, pg4_threshold_gt_table) %>% 
+  dplyr::rename(`FY18 Thresholds` = `Threshold`, 
+                `Count of POs` = `Count`, 
+                `Percent of PO Count` = `PercCnt`, 
+                `FY18 Spend` = `Spend`, 
+                `Percent of FY18 Spend` = `PercSum`)
+
+(pg4_2moago_threshold_table <- pg4_threshold_po %>% 
+    filter(Month == prevmos[1]) %>% 
+    group_by(Threshold) %>% 
+    summarise(Count = n(), Sum = sum(`Sum Amount`)) %>% 
+    arrange(desc(Threshold)))
+
+(pg4_2moago_threshold_gt_table <- pg4_2moago_threshold_table %>% 
+    summarize(Threshold = "Grand Total", Count = sum(Count), Sum = sum(Sum)))
+
+(pg4_2moago_threshold_all_table <- bind_rows(pg4_2moago_threshold_table,
+                                             pg4_2moago_threshold_gt_table))
+
+(pg4_1moago_threshold_table <- pg4_threshold_po %>% 
+    filter(Month == prevmos[2]) %>% 
+    group_by(Threshold) %>% 
+    summarise(Count = n(), Sum = sum(`Sum Amount`)) %>% 
+    arrange(desc(Threshold)))
+
+(pg4_1moago_threshold_gt_table <- pg4_1moago_threshold_table %>% 
+    summarize(Threshold = "Grand Total", Count = sum(Count), Sum = sum(Sum)))
+
+(pg4_1moago_threshold_all_table <- bind_rows(pg4_1moago_threshold_table,
+                                             pg4_1moago_threshold_gt_table))
 
 # Shiny -------------------------------------------------------------------
 
@@ -132,7 +192,9 @@ uipg4 <- tabPanel("Spend/Count by Platforms",
                     fluidRow(
                       column(4, 
                              DT::dataTableOutput("pg4_threshold_sum_cnt_dt")), 
-                      column(8,
-                             plotlyOutput("pg4_plot_thresholds"))),
+                      column(4,
+                             plotlyOutput("pg4_plot_thresholds", height = "600px")),
+                      column(4,
+                             plotlyOutput("pg4_plot_threshold_sum_cnt", height = "600px"))),
                     tags$hr(),
                     p(style = "text-align:right", "Draft for Discussion and Policy Purposes Only")))

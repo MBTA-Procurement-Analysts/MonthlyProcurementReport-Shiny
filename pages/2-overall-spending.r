@@ -331,6 +331,7 @@ plot_line_month_98perc_median <- monthly_98perc %>%
 (po_spend_bunit_all <- bind_rows(po_spend_bunit_table,
                                  po_spend_gt_table))
 
+
 # Shiny -------------------------------------------------------------------
 
 uipg2 <- tabPanel("PO Count and Spend", verticalLayout(

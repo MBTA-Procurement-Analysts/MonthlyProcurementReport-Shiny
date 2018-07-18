@@ -55,6 +55,7 @@ function(input, output) {
   
   # Pg4, Thresholds and Purchasing Platforms
   output$pg4_plot_thresholds <- renderPlotly(pg4_plot_thresholds)
+  output$pg4_plot_threshold_sum_cnt <- renderPlotly(pg4_plot_threshold_sum_cnt)
   output$pg4_threshold_sum_cnt_dt <- renderDT(DT::datatable(pg4_threshold_table,
                                                             rownames = FALSE, 
                                                             options = list(dom = 't')) %>% 
@@ -62,4 +63,6 @@ function(input, output) {
                                                 formatPercentage(c("Percent of PO Count", "Percent of FY18 Spend"), digits = 0) %>% 
                                                 formatStyle("FY18 Thresholds", target = 'row', fontWeight = styleEqual(c("Grand Total"), c('bold')), 
                                                             backgroundColor = styleEqual(c("Grand Total"), c("#dedede"))))
+  
+  
 }

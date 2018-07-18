@@ -13,6 +13,7 @@ library(scales)
 library(shiny)
 library(crosstalk)
 library(magrittr)
+library(formattable)
 ```
 
 ## Setup and Run
@@ -24,4 +25,4 @@ Then, in `R`:
 setwd(Your_Working_Directory)
 library(shiny)
 runApp()
-``` 
+```

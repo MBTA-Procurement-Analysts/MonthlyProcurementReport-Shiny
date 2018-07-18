@@ -8,11 +8,13 @@
 
 
 # The below functions should include all the references to plots and DataTables. 
-# The variable names should match the references in the ui.r file.
+# Format in a nutshell:
+#   output$[variable name in ui.r] <- renderDT or renderPlotly ([object name defined in pages])
 # A prefix of page number or section for the output variable is encouraged
 
 function(input, output) {
   
+  # Page 2, Overalls
   output$pg2_p1_line_all <- renderPlotly(plot_line_month_all)
   output$pg2_d1_all <- renderDT(DT::datatable(po_all_top10_table, 
                                           rownames = FALSE,
@@ -50,4 +52,14 @@ function(input, output) {
                                                 target = 'row',
                                                 fontWeight = styleEqual(c("Grand Total"), c('bold')), 
                                                 backgroundColor = styleEqual(c("Grand Total"), c("#dedede"))))
+  
+  # Pg4, Thresholds and Purchasing Platforms
+  output$pg4_plot_thresholds <- renderPlotly(pg4_plot_thresholds)
+  output$pg4_threshold_sum_cnt_dt <- renderDT(DT::datatable(pg4_threshold_table,
+                                                            rownames = FALSE, 
+                                                            options = list(dom = 't')) %>% 
+                                                formatCurrency(c("FY18 Spend")) %>% 
+                                                formatPercentage(c("Percent of PO Count", "Percent of FY18 Spend"), digits = 0) %>% 
+                                                formatStyle("FY18 Thresholds", target = 'row', fontWeight = styleEqual(c("Grand Total"), c('bold')), 
+                                                            backgroundColor = styleEqual(c("Grand Total"), c("#dedede"))))
 }

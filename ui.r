@@ -13,6 +13,7 @@ library(scales)
 library(shiny)
 library(crosstalk)
 library(magrittr)
+library(formattable)
 
 # Clear workspace
 rm(list = ls())

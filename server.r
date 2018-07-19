@@ -64,5 +64,24 @@ function(input, output) {
                                                 formatStyle("FY18 Thresholds", target = 'row', fontWeight = styleEqual(c("Grand Total"), c('bold')), 
                                                             backgroundColor = styleEqual(c("Grand Total"), c("#dedede"))))
   
+  output$pg4_2moago_threshold <- renderDT(DT::datatable(pg4_2moago_threshold_all_table, 
+                                                        colnames = paste(prevmos[1], colnames(pg4_2moago_threshold_all_table)),
+                                                        rownames = FALSE,
+                                                        options = list(dom = 't',
+                                                                       columnDefs = list(list(className = 'dt-left', targets = 0)))) %>% 
+                                            formatCurrency(c("Sum")) %>% 
+                                            formatStyle("Threshold", 
+                                                        target = 'row', fontWeight = styleEqual(c("Grand Total"), c('bold')), 
+                                                        backgroundColor = styleEqual(c("Grand Total"), c("#dedede"))))
+  
+  output$pg4_1moago_threshold <- renderDT(DT::datatable(pg4_1moago_threshold_all_table, 
+                                                        colnames = paste(prevmos[2], colnames(pg4_1moago_threshold_all_table)),
+                                                        rownames = FALSE,
+                                                        options = list(dom = 't',
+                                                                       columnDefs = list(list(className = 'dt-left', targets = 0)))) %>% 
+                                            formatCurrency(c("Sum")) %>% 
+                                            formatStyle("Threshold", 
+                                                        target = 'row', fontWeight = styleEqual(c("Grand Total"), c('bold')), 
+                                                        backgroundColor = styleEqual(c("Grand Total"), c("#dedede"))))
   
 }

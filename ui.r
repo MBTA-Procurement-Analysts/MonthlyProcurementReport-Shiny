@@ -45,6 +45,5 @@ source("pages/4-purchase-platforms.r")
 
 navbarPage(title = "Procurement Report FY 2018",
                  uipg2,
-                 tabPanel("Page 3"),
                  uipg4
 )

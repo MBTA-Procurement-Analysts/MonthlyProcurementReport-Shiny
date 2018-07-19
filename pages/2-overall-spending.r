@@ -23,13 +23,13 @@ prevmos <- c("May", "Jun")
 # Data Import -------------------------------------------------------------
 
 # Raw file before 7/16/2018
-(raw_po <- readxl::read_excel("data/plotly-report.xlsx", 
-                              sheet = "sheet1", 
-                              skip = 1, 
-                              col_types = c("text", "text", "numeric", "text", "date", 
-                                            "text", "text", "text", "text", "text", 
-                                            "numeric", "numeric", "text", "date", "text", 
-                                            "numeric")))
+# (raw_po <- readxl::read_excel("data/plotly-report.xlsx", 
+#                               sheet = "sheet1", 
+#                               skip = 1, 
+#                               col_types = c("text", "text", "numeric", "text", "date", 
+#                                             "text", "text", "text", "text", "text", 
+#                                             "numeric", "numeric", "text", "date", "text", 
+#                                             "numeric")))
 # Raw file after 7/16/2018
 (raw_po <- readxl::read_excel("data/07162018-1-Spending-sheet.xlsx", 
                               sheet = "Raw Data", 
